@@ -1,11 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const productsRouter = require('./routes/products');
-const enumsRouter = require('./routes/enums');
+const productsRouter = require('./src/routes/products');
+const enumsRouter = require('./src/routes/enums');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const connectDatabase = require('./config/database');
+const connectDatabase = require('./src/config/database');
 
 dotenv.config();
 
@@ -59,7 +59,8 @@ app.post('/api/admin/login', (req, res) => {
   return res.status(401).json({ error: 'Unauthorized' });
 });
 
-app.use('/admin/app', requireAdmin, express.static(path.join(__dirname, 'public')));
+const adminAppDir = path.join(__dirname, 'src', 'public');
+app.use('/admin/app', requireAdmin, express.static(adminAppDir));
 
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.path} not found` });
