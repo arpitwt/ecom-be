@@ -1,0 +1,312 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Add Product</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+      form { max-width: 800px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+      label { display: flex; flex-direction: column; font-weight: 600; gap: 6px; }
+      input, select, textarea { padding: 8px; font-size: 14px; }
+      .full { grid-column: 1 / -1; }
+      .row { display: flex; gap: 8px; }
+      .sizes { display: flex; gap: 8px; align-items: center; }
+      button { padding: 10px 14px; font-weight: 600; cursor: pointer; }
+      .pill { padding: 2px 8px; background: #f2f2f2; border-radius: 999px; margin-right: 6px; }
+      .pill button { margin-left: 6px; border: none; background: transparent; cursor: pointer; }
+      .notice { color: #666; font-size: 12px; }
+      .success { color: #0a7f2e; }
+      .error { color: #a40020; }
+
+      @media (max-width: 640px) {
+        body { margin: 16px; }
+        form { grid-template-columns: 1fr; gap: 10px; }
+        .row { flex-direction: column; gap: 10px; }
+        #sizesList { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+        .sizes { flex-direction: column; align-items: stretch; gap: 10px; }
+        #addSize, button[type='submit'] { width: 100%; }
+        input, select, textarea { font-size: 16px; }
+        #colorSwatch { width: 24px; height: 24px; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Add Product</h1>
+    <p class="notice">Dropdowns are loaded from /api/enums endpoints.</p>
+    <div id="msg"></div>
+    <form id="productForm" autocomplete="off">
+      <label>
+        Name
+        <input name="name" required autocomplete="off" />
+      </label>
+
+      <label>
+        Price
+        <input type="number" name="price" min="0" step="0.01" required autocomplete="off" />
+      </label>
+      <label>
+        Old Price
+        <input type="number" name="oldPrice" min="0" step="0.01" autocomplete="off" />
+      </label>
+
+      <label>
+        Discount %
+        <input type="number" name="discountPercent" min="0" max="100" step="1" readonly autocomplete="off" />
+      </label>
+
+      <label>
+        Gender
+        <select name="gender"></select>
+      </label>
+
+      <label>
+        Category (key)
+        <select name="categoryKey" id="categoryKey"></select>
+      </label>
+
+      <label>
+        Category (name) saved in product
+        <select name="category" id="category"></select>
+      </label>
+
+      <label>
+        Sub Category
+        <select name="subCategory" id="subCategory"></select>
+      </label>
+
+      <label>
+        Product Type
+        <select name="productType" id="productType"></select>
+      </label>
+
+      <label>
+        Fit
+        <select name="fit" id="fit"></select>
+      </label>
+
+      <label>
+        Color
+        <div class="row" style="align-items:center">
+          <select name="color" id="color"></select>
+          <span id="colorSwatch" style="display:inline-block;width:20px;height:20px;border:1px solid #ccc;border-radius:4px"></span>
+        </div>
+      </label>
+
+      <label class="full">
+        Images (comma separated URLs)
+        <input name="images" placeholder="https://... , https://..." autocomplete="off" />
+      </label>
+
+      <fieldset class="full">
+        <legend>Sizes</legend>
+        <div class="sizes">
+          <select id="sizeSelect"></select>
+          <input type="number" id="sizeStock" min="0" placeholder="stock" autocomplete="off" />
+          <button type="button" id="addSize">Add Size</button>
+        </div>
+        <div id="sizesList" class="row"></div>
+      </fieldset>
+
+      <fieldset class="full">
+        <legend>Product Info</legend>
+        <div class="row">
+          <label>
+            Made Of
+            <select name="productInfo.madeOf" id="madeOf"></select>
+          </label>
+          <label>
+            Neck Type
+            <select name="productInfo.neckType" id="neckType"></select>
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Pattern
+            <select name="productInfo.pattern" id="pattern"></select>
+          </label>
+          <label>
+            Sleeve
+            <select name="productInfo.sleeve" id="sleeve"></select>
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Care Instructions
+            <select name="productInfo.careInstructions" id="careInstructions"></select>
+          </label>
+          <label>
+            Country Of Origin
+            <select name="productInfo.contryOfOrigin" id="country"></select>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="full">
+        <button type="submit">Create Product</button>
+      </div>
+    </form>
+
+    <script>
+      const api = (path) => fetch(path).then(r => r.json());
+      const fill = async (select, values) => {
+        select.innerHTML = values.map(v => `<option value="${v}">${v}</option>`).join('');
+      };
+
+      async function loadEnums() {
+        const [gender, sizes, fit, productTypes, neckTypes, sleeveTypes, countries, care, madeOf, patterns, categoriesNames, categoryKeys, colors, colorsFull] = await Promise.all([
+          api('/api/enums/gender'),
+          api('/api/enums/sizes'),
+          api('/api/enums/fit'),
+          api('/api/enums/product-types'),
+          api('/api/enums/neck-types'),
+          api('/api/enums/sleeve-types'),
+          api('/api/enums/countries'),
+          api('/api/enums/care-instructions'),
+          api('/api/enums/made-of'),
+          api('/api/enums/patterns'),
+          api('/api/enums/categories'),
+          api('/api/enums/category-keys'),
+          api('/api/enums/colors'),
+          api('/api/enums/colors-full')
+        ]);
+
+        await fill(document.getElementById('category'), categoriesNames);
+        await fill(document.getElementById('categoryKey'), categoryKeys);
+
+        await fill(document.getElementById('subCategory'), await api('/api/enums/subcategories/TOPWEAR'));
+        document.getElementById('categoryKey').addEventListener('change', async (e) => {
+          const key = e.target.value;
+          const subs = await api(`/api/enums/subcategories/${key}`);
+          await fill(document.getElementById('subCategory'), subs);
+        });
+
+        await fill(document.querySelector('select[name="gender"]'), gender);
+        await fill(document.getElementById('sizeSelect'), sizes);
+        await fill(document.getElementById('fit'), fit);
+        await fill(document.getElementById('productType'), productTypes);
+        await fill(document.getElementById('neckType'), neckTypes);
+        await fill(document.getElementById('sleeve'), sleeveTypes);
+        await fill(document.getElementById('country'), countries);
+        await fill(document.getElementById('careInstructions'), care);
+        await fill(document.getElementById('madeOf'), madeOf);
+        
+        await fill(document.getElementById('pattern'), patterns);
+        await fill(document.getElementById('color'), colors);
+        const colorMap = Object.fromEntries(colorsFull.map(c => [c.name, c.hex]));
+        const updateSwatch = () => {
+          const sel = document.getElementById('color').value;
+          document.getElementById('colorSwatch').style.backgroundColor = colorMap[sel] || '#fff';
+        };
+        document.getElementById('color').addEventListener('change', updateSwatch);
+        updateSwatch();
+      }
+
+      // Auto-calculate discount percentage from Price and Old Price
+      const priceInput = document.querySelector('input[name="price"]');
+      const oldPriceInput = document.querySelector('input[name="oldPrice"]');
+      const discountInput = document.querySelector('input[name="discountPercent"]');
+
+      function calculateDiscountPercent(price, oldPrice) {
+        if (!isFinite(price) || !isFinite(oldPrice) || oldPrice <= 0) return undefined;
+        const pct = Math.round(((oldPrice - price) / oldPrice) * 100);
+        return Math.max(0, Math.min(100, pct));
+      }
+
+      function autoUpdateDiscount() {
+        const price = parseFloat(priceInput && priceInput.value || '');
+        const oldPrice = parseFloat(oldPriceInput && oldPriceInput.value || '');
+        const pct = calculateDiscountPercent(price, oldPrice);
+        if (discountInput && pct !== undefined) discountInput.value = String(pct);
+      }
+
+      if (priceInput && oldPriceInput) {
+        priceInput.addEventListener('input', autoUpdateDiscount);
+        oldPriceInput.addEventListener('input', autoUpdateDiscount);
+      }
+
+      const sizes = [];
+
+      function renderSizes() {
+        const html = sizes
+          .map(s => `<span class="pill">${s.size}: ${s.stock}<button type="button" class="remove-size" data-size="${s.size}" aria-label="Remove ${s.size}">✕</button></span>`)
+          .join('');
+        document.getElementById('sizesList').innerHTML = html;
+      }
+      document.getElementById('addSize').addEventListener('click', () => {
+        const size = document.getElementById('sizeSelect').value;
+        const stock = Number(document.getElementById('sizeStock').value || '0');
+        if (!size) return;
+        const existing = sizes.find(s => s.size === size);
+        if (existing) existing.stock = stock; else sizes.push({ size, stock });
+        renderSizes();
+      });
+
+      document.getElementById('sizesList').addEventListener('click', (e) => {
+        const target = e.target;
+        if (target && target.classList && target.classList.contains('remove-size')) {
+          const sizeToRemove = target.getAttribute('data-size');
+          const idx = sizes.findIndex(s => s.size === sizeToRemove);
+          if (idx !== -1) {
+            sizes.splice(idx, 1);
+            renderSizes();
+          }
+        }
+      });
+
+      document.getElementById('productForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const toObj = Object.fromEntries(fd.entries());
+
+        const makeSlug = (name) => name.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') + '-' + Date.now();
+        const computedDiscount = calculateDiscountPercent(Number(toObj.price), Number(toObj.oldPrice));
+        const payload = {
+          slug: makeSlug(toObj.name || ''),
+          name: toObj.name,
+          price: Number(toObj.price),
+          oldPrice: toObj.oldPrice ? Number(toObj.oldPrice) : undefined,
+          discountPercent: toObj.discountPercent ? Number(toObj.discountPercent) : (computedDiscount !== undefined ? computedDiscount : undefined),
+          gender: toObj.gender,
+          categoryKey: toObj.categoryKey,
+          category: toObj.category,
+          productType: toObj.productType,
+          fit: toObj.fit,
+          color: toObj.color,
+          subCategory: toObj.subCategory,
+          images: (toObj.images || '').split(',').map(s => s.trim()).filter(Boolean),
+          sizes,
+          productInfo: {
+            madeOf: toObj['productInfo.madeOf'] || undefined,
+            neckType: toObj['productInfo.neckType'] || undefined,
+            
+            pattern: toObj['productInfo.pattern'] || undefined,
+            sleeve: toObj['productInfo.sleeve'] || undefined,
+            careInstructions: toObj['productInfo.careInstructions'] || undefined,
+            contryOfOrigin: toObj['productInfo.contryOfOrigin'] || undefined
+          }
+        };
+
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const msg = document.getElementById('msg');
+        if (res.ok) {
+          const data = await res.json();
+          msg.className = 'success';
+          msg.textContent = `Created: ${data.slug}`;
+          e.target.reset();
+        } else {
+          const err = await res.json().catch(() => ({}));
+          msg.className = 'error';
+          msg.textContent = `Error: ${res.status} ${err.error || ''}`;
+        }
+      });
+
+      loadEnums();
+    </script>
+  </body>
+  </html>
+
