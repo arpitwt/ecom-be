@@ -46,6 +46,7 @@ router.post('/', async (req, res, next) => {
       payload.slug = makeSlug(payload.name);
     }
     const product = await Product.create(payload);
+    console.log(product);
     return res.status(201).json(product);
   } catch (error) {
     return next(error);
